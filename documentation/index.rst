@@ -2,7 +2,7 @@
 Command line usage
 ==================
 
-Type phpmd [filename|directory] [report format] [ruleset file], i.e: ::
+Type phpmd [filename|directory[,filename|directory[,...]]] [report format] [ruleset file], i.e: ::
 
   mapi@arwen ~ $ phpmd PHP/Depend/DbusUI/ xml rulesets/codesize.xml
   <?xml version="1.0" encoding="UTF-8" ?>
@@ -20,8 +20,8 @@ Type phpmd [filename|directory] [report format] [ruleset file], i.e: ::
     </file>
   </pmd>
 
-You can pass a file name or a directory name containing PHP source
-code to PHPMD.
+You can pass a comma-separated string with list of file names
+or a directory names, containing PHP source code to PHPMD.
 
 The PHPMD Phar distribution includes the rule set files inside
 its archive, even if the "rulesets/codesize.xml" parameter above looks
@@ -63,6 +63,26 @@ Command line options
 
   - ``--ignore-violations-on-exit`` - will exit with a zero code, even if any
     violations are found.
+
+  - ``--cache`` - will enable the result cache. Will default to ``.phpmd.result-cache.php`` in the
+    current working directory.
+
+  - ``--cache-file`` - in cooperation with ``--cache`` will override the default result cache file path of
+    ``.phpmd.result-cache.php`` to the given file path.
+
+  - ``--cache-strategy`` - sets the caching strategy to determine if a file is still fresh. Either
+    `content` to base it on the file contents, or `timestamp` to base it on the file modified timestamp.
+
+  - ``--generate-baseline`` - will generate a ``phpmd.baseline.xml`` for existing violations
+    next to the ruleset definition file. The file paths of the violations will be relative to the current
+    working directory.
+
+  - ``--update-baseline`` - will remove all violations from an existing ``phpmd.baseline.xml``
+    that no longer exist. New violations will _not_ be added. The file path of the violations will be relative
+    to the current working directory.
+
+  -  ``--baseline-file`` - the filepath to a custom baseline xml file. If absent will
+    default to ``phpmd.baseline.xml``
 
   An example command line: ::
 
@@ -113,11 +133,39 @@ PHPMD's command line tool currently defines four different exit codes.
 Renderers
 =========
 
-At the moment PHPMD comes with the following five renderers:
+At the moment PHPMD comes with the following renderers:
 
 - *xml*, which formats the report as XML.
 - *text*, simple textual format.
-- *ansi*, colorful, formated text for the command line.
+- *ansi*, colorful, formatted text for the command line.
 - *html*, single HTML file with possible problems.
 - *json*, formats JSON report.
+- *gitlab*, a format that GitLab CI understands.
 - *github*, a format that GitHub Actions understands (see `CI Integration </documentation/ci-integration.html#github-actions>`_).
+
+Some more formats can be obtained by conversion such as:
+
+*junit* can be obtained using `xsltproc` package on the Debian-based systems or `libxslt` on Alpine and CentOS. with this given `junit.xslt config file <https://phpmd.org/junit.xslt>`_::
+
+  ~ $ phpmd src xml cleancode | xsltproc junit.xslt -
+
+Baseline
+=========
+
+For existing projects a violation baseline can be generated. All violations in this baseline will be ignored in further inspections.
+
+The recommended approach would be a ``phpmd.xml`` in the root of the project. To generate the phpmd.baseline.xml next to it::
+
+  ~ $ phpmd /path/to/source text phpmd.xml --generate-baseline
+
+To specify a custom baseline filepath for export::
+
+  ~ $ phpmd /path/to/source text phpmd.xml --generate-baseline --baseline-file /path/to/source/phpmd.baseline.xml
+
+By default PHPMD will look next to ``phpmd.xml`` for ``phpmd.baseline.xml``. To overwrite this behaviour::
+
+  ~ $ phpmd /path/to/source text phpmd.xml --baseline-file /path/to/source/phpmd.baseline.xml
+
+To clean up an existing baseline file and *only remove* no longer existing violations::
+
+  ~ $ phpmd /path/to/source text phpmd.xml --update-baseline

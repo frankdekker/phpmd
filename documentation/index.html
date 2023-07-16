@@ -10,13 +10,13 @@
     <meta name="keywords" content="PHPMD, PMD, Project Mess Detection, Design, Maintenance, Quality Assurence, Violations, Reporting" />
     <meta name="author" content="Manuel Pichler" />
     <meta name="language" content="en" />
-    <meta name="date" content="Wed, 10 Mar 2021 20:18:39 +0000" />
+    <meta name="date" content="Sun, 16 Jul 2023 14:10:36 +0000" />
     <meta name="robots" content="all" />
 
     <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/" />
     <meta name="DC.title" content="About" />
     <meta name="DC.creator" content="Manuel Pichler" />
-    <meta name="DC.date" content="Wed, 10 Mar 2021 20:18:39 +0000" />
+    <meta name="DC.date" content="Sun, 16 Jul 2023 14:10:36 +0000" />
     <meta name="DC.rights" content="BSD 3-Clause" />
 
     <link rel="icon" href="/favicon.ico" type="image/x-icon" />
@@ -34,7 +34,7 @@
     <hr />
 <a id="command-line-usage"></a>
 <h2>Command line usage</h2>
-<p>Type phpmd [filename|directory] [report format] [ruleset file], i.e: :</p>
+<p>Type phpmd [filenamedirectory[,...]]] [report format] [ruleset file], i.e: :</p>
 <pre><code class="">mapi@arwen ~ $ phpmd PHP/Depend/DbusUI/ xml rulesets/codesize.xml
 &lt;?xml version=&quot;1.0&quot; encoding=&quot;UTF-8&quot; ?&gt;
 &lt;pmd version=&quot;0.0.1&quot; timestamp=&quot;2009-12-19T22:17:18+01:00&quot;&gt;
@@ -51,8 +51,8 @@
   &lt;/file&gt;
 &lt;/pmd&gt;
 </code></pre>
-<p>You can pass a file name or a directory name containing PHP source
-code to PHPMD.</p>
+<p>You can pass a comma-separated string with list of file names
+or a directory names, containing PHP source code to PHPMD.</p>
 <p>The PHPMD Phar distribution includes the rule set files inside
 its archive, even if the &quot;rulesets/codesize.xml&quot; parameter above looks
 like a filesystem reference.</p>
@@ -78,7 +78,21 @@ like a filesystem reference.</p>
 <li class="dash"><code>--not-strict</code> - Does not report those nodes with a @SuppressWarnings annotation.</li>
 <li class="dash"><code>--ignore-errors-on-exit</code> - will exit with a zero code, even on error.</li>
 <li class="dash"><code>--ignore-violations-on-exit</code> - will exit with a zero code, even if any
-    violations are found.
+    violations are found.</li>
+<li class="dash"><code>--cache</code> - will enable the result cache. Will default to <code>.phpmd.result-cache.php</code> in the
+    current working directory.</li>
+<li class="dash"><code>--cache-file</code> - in cooperation with <code>--cache</code> will override the default result cache file path of
+    <code>.phpmd.result-cache.php</code> to the given file path.</li>
+<li class="dash"><code>--cache-strategy</code> - sets the caching strategy to determine if a file is still fresh. Either
+    `content` to base it on the file contents, or `timestamp` to base it on the file modified timestamp.</li>
+<li class="dash"><code>--generate-baseline</code> - will generate a <code>phpmd.baseline.xml</code> for existing violations
+    next to the ruleset definition file. The file paths of the violations will be relative to the current
+    working directory.</li>
+<li class="dash"><code>--update-baseline</code> - will remove all violations from an existing <code>phpmd.baseline.xml</code>
+    that no longer exist. New violations will _<a href="">not</a> be added. The file path of the violations will be relative
+    to the current working directory.</li>
+<li class="dash"> <code>--baseline-file</code> - the filepath to a custom baseline xml file. If absent will
+    default to <code>phpmd.baseline.xml</code>
   An example command line: ::
     phpmd PHP/Depend/DbusUI xml codesize --reportfile phpmd.xml --suffixes php,phtml</li>
 </ul>
@@ -122,15 +136,35 @@ that will check the source code.</p>
 
 <a id="renderers"></a>
 <h2>Renderers</h2>
-<p>At the moment PHPMD comes with the following five renderers:</p>
+<p>At the moment PHPMD comes with the following renderers:</p>
 <ul><li class="dash"><em>xml</em>, which formats the report as XML.</li>
 <li class="dash"><em>text</em>, simple textual format.</li>
-<li class="dash"><em>ansi</em>, colorful, formated text for the command line.</li>
+<li class="dash"><em>ansi</em>, colorful, formatted text for the command line.</li>
 <li class="dash"><em>html</em>, single HTML file with possible problems.</li>
 <li class="dash"><em>json</em>, formats JSON report.</li>
+<li class="dash"><em>gitlab</em>, a format that GitLab CI understands.</li>
 <li class="dash"><em>github</em>, a format that GitHub Actions understands (see <a href="/documentation/ci-integration.html#github-actions">CI Integration</a>).</li>
 </ul>
 
+<p>Some more formats can be obtained by conversion such as:</p>
+<p><em>junit</em> can be obtained using <a href="https://phpmd.org/junit.xslt">xsltproc` package on the Debian-based systems or `libxslt` on Alpine and CentOS. with this given `junit.xslt config file</a>:</p>
+<pre><code class="">~ $ phpmd src xml cleancode | xsltproc junit.xslt -
+</code></pre>
+<a id="baseline"></a>
+<h2>Baseline</h2>
+<p>For existing projects a violation baseline can be generated. All violations in this baseline will be ignored in further inspections.</p>
+<p>The recommended approach would be a <code>phpmd.xml</code> in the root of the project. To generate the phpmd.baseline.xml next to it:</p>
+<pre><code class="">~ $ phpmd /path/to/source text phpmd.xml --generate-baseline
+</code></pre>
+<p>To specify a custom baseline filepath for export:</p>
+<pre><code class="">~ $ phpmd /path/to/source text phpmd.xml --generate-baseline --baseline-file /path/to/source/phpmd.baseline.xml
+</code></pre>
+<p>By default PHPMD will look next to <code>phpmd.xml</code> for <code>phpmd.baseline.xml</code>. To overwrite this behaviour:</p>
+<pre><code class="">~ $ phpmd /path/to/source text phpmd.xml --baseline-file /path/to/source/phpmd.baseline.xml
+</code></pre>
+<p>To clean up an existing baseline file and <em>only remove</em> no longer existing violations:</p>
+<pre><code class="">~ $ phpmd /path/to/source text phpmd.xml --update-baseline
+</code></pre>
 </div>
 
 <div id="navigation">
@@ -142,6 +176,15 @@ that will check the source code.</p>
 <div id="footer">
     By <strong>Manuel Pichler</strong>
     licensed under <a href="https://opensource.org/licenses/bsd-license.php" title="BSD 3-Clause">BSD 3-Clause</a>
+
+    <span class="follow">
+        <a href="https://twitter.com/php_pmd" title="Follow on Twitter" class="twitter-follow" target="_blank">
+            <i></i> Follow @PHP_PMD
+        </a>
+        <a rel="me" href="https://phpc.social/@phpmd" title="Follow on Mastodon" class="mastodon-follow" target="_blank">
+            <i></i> Follow @phpmd@phpc.social
+        </a>
+    </span>
 </div>
 
 <div id="formats">
